@@ -1,0 +1,8 @@
+---
+- name: Provision Kubernetes Certificates
+  connection: local
+  hosts: localhost
+  gather_facts: False
+  become: False
+  roles:
+    - provision_certificates

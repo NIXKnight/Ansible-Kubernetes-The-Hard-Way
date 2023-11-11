@@ -1,0 +1,8 @@
+---
+# Install these requirements using:
+# ansible-galaxy collection install -r ../requirements/collections.yml
+collections:
+  - name: community.crypto
+    version: 2.15.1
+    type: git
+    source: https://github.com/ansible-collections/community.crypto.git

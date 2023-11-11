@@ -1,0 +1,59 @@
+---
+# defaults file for provision_certificates
+cert_cert_provisioner_path: ""
+
+cert_provisioner_ca_config:
+  subject:
+    CN: "kubernetes-ca"
+    O: "kubernetes"
+
+cert_provisioner_admin_config:
+  subject:
+    CN: "admin"
+    O: "system:masters"
+
+cert_provisioner_kube_controller_manager_config:
+  subject:
+    CN: "system:kube-controller-manager"
+    O: "system:kube-controller-manager"
+
+cert_provisioner_kube_proxy_config:
+  subject:
+    CN: "system:kube-proxy"
+    O: "system:node-proxier"
+
+cert_provisioner_kube_scheduler_config:
+  subject:
+    CN: "system:kube-scheduler"
+    O: "system:kube-scheduler"
+
+ca_kubernetes_api_server_config:
+  subject:
+    CN: "kube-apiserver"
+    O: "kubernetes"
+  openssl: |
+    [req]
+      req_extensions = v3_req
+      distinguished_name = "req_distinguished_name"
+    [req_distinguished_name]
+    [v3_req]
+      basicConstraints = critical, CA:FALSE
+      keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+      extendedKeyUsage = serverAuth
+      subjectAltName = @alt_names
+    [alt_names]
+      DNS.1 = kubernetes
+      DNS.2 = kubernetes.default
+      DNS.3 = kubernetes.default.svc
+      DNS.4 = kubernetes.default.svc.cluster
+      DNS.5 = kubernetes.default.svc.cluster.local
+      IP.1 = {{ kubernetes_api_service }}
+      IP.2 = ${MASTER_1}
+      IP.3 = ${MASTER_2}
+      IP.4 = ${LOADBALANCER}
+      .
+      .
+      .
+      .
+      IP.N = 127.0.0.1
+
