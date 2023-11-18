@@ -1,0 +1,60 @@
+---
+- name: Wait for VM to Boot
+  become: False
+  ansible.builtin.wait_for:
+    host: "{{ current_vm_ip }}"
+    port: "22"
+    state: started
+    search_regex: OpenSSH
+    delay: 10
+    timeout: "60"
+  vars:
+    ansible_connection: local
+
+- name: Install Guest Agent
+  ansible.builtin.apt:
+    name: "qemu-guest-agent"
+    state: present
+    update_cache: yes
+  delegate_to: "{{ current_vm_ip }}"
+
+- name: Disable CGroups v2 and Disable IPv6
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT="'
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="systemd.unified_cgroup_hierarchy=0 ipv6.disable=1"'
+    backrefs: yes
+  delegate_to: "{{ current_vm_ip }}"
+
+- name: Add br_netfilter Kernel Module
+  ansible.builtin.lineinfile:
+    path: "/etc/modules"
+    line: "br_netfilter"
+    create: yes
+  delegate_to: "{{ current_vm_ip }}"
+
+- name: Load br_netfilter Kernel Module
+  community.general.modprobe:
+    name: "br_netfilter"
+    state: present
+  delegate_to: "{{ current_vm_ip }}"
+
+- name: Modify Kernel Parameters for Kubernetes
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: "{{ item.state }}"
+    reload: yes
+  delegate_to: "{{ current_vm_ip }}"
+  with_items: "{{ vm_provisioner_vm_kernel_parameters }}"
+
+- name: Update Grub
+  ansible.builtin.shell:
+    cmd: "update-grub"
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ current_vm_ip }}"
+
+- name: Reboot all VM
+  ansible.builtin.reboot:
+  delegate_to: "{{ current_vm_ip }}"

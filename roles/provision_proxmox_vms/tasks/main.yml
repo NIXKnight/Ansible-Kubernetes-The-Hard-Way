@@ -1,0 +1,23 @@
+---
+# tasks file for provision_proxmox_vms
+- name: Upload Debian Bookworm Cloud Image
+  ansible.builtin.copy:
+    remote_src: no
+    src: "{{ vm_provisioner_src_image }}"
+    dest: "{{ vm_provisioner_dest_image }}"
+  when:
+    - vm_provisioner_src_image is defined and vm_provisioner_src_image | length > 0
+    - vm_provisioner_dest_image is defined and vm_provisioner_dest_image | length > 0
+
+- name: Run VM Creation Tasks
+  import_tasks: vm_creation.yml
+
+- name: Extract IP addresses from VM configurations
+  set_fact:
+    vm_ips: "{{ vm_provisioner_k8s_vms | map(attribute='ipconfig.ipconfig0') | map('regex_search', '(\\d+\\.\\d+\\.\\d+\\.\\d+)') }}"
+
+- name: Run Post VM Creation Tasks
+  include_tasks: post_vm_creation.yml
+  loop: "{{ vm_ips }}"
+  loop_control:
+    loop_var: current_vm_ip
