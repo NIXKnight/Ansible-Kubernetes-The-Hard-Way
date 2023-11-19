@@ -1,0 +1,90 @@
+---
+- name: Initialize List of VMs without Attached Disk (Empty)"
+  set_fact:
+    vms_without_attached_disk: []
+
+- name: Create VM(s)
+  community.general.proxmox_kvm:
+    name: "{{ item.name }}"
+    vmid: "{{ item.vmid }}"
+    sockets: "{{ item.sockets }}"
+    cores: "{{ item.cores }}"
+    memory: "{{ item.memory }}"
+    ostype: "{{ item.ostype }}"
+    net: "{{ item.net }}"
+    ciuser: "{{ item.ciuser }}"
+    sshkeys: "{{ item.sshkeys }}"
+    ide: "{{ item.ide }}"
+    searchdomains: "{{ item.searchdomains }}"
+    nameservers: "{{ item.nameservers }}"
+    ipconfig: "{{ item.ipconfig }}"
+    agent: "enabled=1,fstrim_cloned_disks=1"
+    boot: "order=virtio0"
+    state: present
+    node: "{{ vm_provisioner_proxmox_node }}"
+    api_host: "{{ vm_provisioner_proxmox_api_host }}"
+    api_user: "{{ vm_provisioner_proxmox_api_user }}"
+    api_password: "{{ vm_provisioner_proxmox_api_password }}"
+    validate_certs: no
+  delegate_to: localhost
+  become: False
+  with_items:
+    - "{{ vm_provisioner_k8s_vms }}"
+
+- name: Check if virtio0 disk is attached to VMs
+  ansible.builtin.shell: "qm config {{ item.vmid }}"
+  register: vm_config
+  args:
+    executable: /bin/bash
+  loop: "{{ vm_provisioner_k8s_vms }}"
+  failed_when: false
+  changed_when: false
+
+- name: Update List of VMs without Attached Disk
+  set_fact:
+    vms_without_attached_disk: "{{ vms_without_attached_disk + [item.item.vmid] }}"
+  loop: "{{ vm_config.results }}"
+  when: "'virtio0: {{ vm_provisioner_default_proxmox_storage }}' not in item.stdout"
+
+- name: Import Disk(s) to Thin-LVM Storage {{ vm_provisioner_default_proxmox_storage }}
+  ansible.builtin.shell:
+    cmd: "qm importdisk {{ item }} {{ vm_provisioner_dest_image }} {{ vm_provisioner_default_proxmox_storage }}"
+  args:
+    executable: /bin/bash
+  with_items: "{{ vms_without_attached_disk }}"
+
+- name: Attach Imported Disk(s) to the VM(s)
+  ansible.builtin.shell:
+    cmd: "qm set {{ item }} --virtio0 {{ vm_provisioner_default_proxmox_storage }}:vm-{{ item }}-disk-0"
+  args:
+    executable: /bin/bash
+  with_items: "{{ vms_without_attached_disk }}"
+
+- name: Resize Imported Disk(s)
+  ansible.builtin.shell:
+    cmd: "qm resize {{ item }} virtio0 +10G"
+  args:
+    executable: /bin/bash
+  with_items: "{{ vms_without_attached_disk }}"
+  when: vms_without_attached_disk | length > 0
+
+- name: Add Tags to VM(s)
+  ansible.builtin.shell:
+    cmd: "qm set {{ item.vmid }} -tags \"{{ item.tags }}\""
+  args:
+    executable: /bin/bash
+  with_items: "{{ vm_provisioner_k8s_vms }}"
+
+- name: Start VM(s)
+  community.general.proxmox_kvm:
+    name: "{{ item.name }}"
+    vmid: "{{ item.vmid }}"
+    state: started
+    node: "{{ vm_provisioner_proxmox_node }}"
+    api_host: "{{ vm_provisioner_proxmox_api_host }}"
+    api_user: "{{ vm_provisioner_proxmox_api_user }}"
+    api_password: "{{ vm_provisioner_proxmox_api_password }}"
+    validate_certs: no
+  delegate_to: localhost
+  become: False
+  with_items: "{{ vm_provisioner_k8s_vms }}"

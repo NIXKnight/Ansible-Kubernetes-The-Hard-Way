@@ -1,0 +1,63 @@
+---
+# defaults file for provision_proxmox_vms
+vm_provisioner_src_image: ""
+vm_provisioner_dest_image: ""
+
+vm_provisioner_proxmox_node: "{{ lookup('ansible.builtin.env', 'PROXMOX_NODE_NAME') }}"
+vm_provisioner_proxmox_api_host: "{{ lookup('ansible.builtin.env', 'PROXMOX_API_HOST') }}"
+vm_provisioner_proxmox_api_user: "{{ lookup('ansible.builtin.env', 'PROXMOX_API_USER') }}"
+vm_provisioner_proxmox_api_password: "{{ lookup('ansible.builtin.env', 'PROXMOX_API_PASSWORD') }}"
+
+vm_provisioner_local_user_ssh_public_key: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/id_rsa.pub"
+vm_provisioner_cloudinit_username: "{{ lookup('ansible.builtin.env', 'USER') }}"
+vm_provisioner_cloudinit_ssh_public_key: |
+  {{lookup('ansible.builtin.file', vm_provisioner_local_user_ssh_public_key) }}
+vm_provisioner_cloudinit_search_domain: ""
+vm_provisioner_default_proxmox_storage: ""
+
+vm_provisioner_vm_kernel_parameters:
+  - { name: "vm.swappiness", value: 1, state: present }
+  - { name: "net.bridge.bridge-nf-call-iptables", value: 1, state: present }
+  - { name: "net.ipv4.ip_forward", value: 1, state: present }
+
+vm_provisioner_k8s_vms: []
+  # - name: "master-01"
+  #   description: "group:k8s-masters"
+  #   vmid: 101
+  #   sockets: 2
+  #   cores: 1
+  #   memory: 2048
+  #   ostype: "l26"
+  #   disk_resize: "8G"
+  #   ciuser: "{{ vm_provisioner_cloudinit_username }}"
+  #   ide:
+  #     ide2: 'local:cloudinit,format=qcow2'
+  #   sshkeys: "{{ vm_provisioner_cloudinit_ssh_public_key }}"
+  #   searchdomains: "{{ vm_provisioner_cloudinit_search_domain }}"
+  #   nameservers:
+  #     - '192.168.1.1'
+  #   net:
+  #     net0: "virtio,bridge=vmbr0"
+  #   ipconfig:
+  #     ipconfig0: "ip=192.168.1.21/24,gw=192.168.1.1"
+  #   state: present
+  # - name: "master-02"
+  #   description: "group:k8s-masters"
+  #   vmid: 102
+  #   sockets: 2
+  #   cores: 1
+  #   memory: 2048
+  #   ostype: "l26"
+  #   disk_resize: "8G"
+  #   ciuser: "{{ vm_provisioner_cloudinit_username }}"
+  #   ide:
+  #     ide2: 'local:cloudinit,format=qcow2'
+  #   sshkeys: "{{ vm_provisioner_cloudinit_ssh_public_key }}"
+  #   searchdomains: "{{ vm_provisioner_cloudinit_search_domain }}"
+  #   nameservers:
+  #     - '192.168.1.1'
+  #   net:
+  #     net0: "virtio,bridge=vmbr0"
+  #   ipconfig:
+  #     ipconfig0: "ip=192.168.1.22/24,gw=192.168.1.1"
+  #   state: present

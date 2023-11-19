@@ -1,0 +1,9 @@
+---
+galaxy_info:
+  author: Saad Ali
+  description: Provisioning Proxmox VMs.
+  license: license (MIT)
+  platforms:
+  - name: Debian
+    versions:
+      - bookworm
