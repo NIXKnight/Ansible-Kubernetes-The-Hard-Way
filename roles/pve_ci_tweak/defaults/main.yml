@@ -1,0 +1,15 @@
+---
+# defaults file for pve_ci_tweak
+pve_ci_image: ""
+pve_ci_update_grub_cmdline: True
+pve_ci_grub_config_path: "/etc/default/grub"
+pve_ci_grub_cmdline: 'GRUB_CMDLINE_LINUX_DEFAULT="ipv6.disable=1"'
+pve_ci_kernel_modules_override_path: "/etc/modules-load.d/override.conf"
+pve_ci_kernel_modules: |
+  nf_conntrack
+  br_netfilter
+pve_ci_sysctl_override_path: "/etc/sysctl.d/override.conf"
+pve_ci_sysctl_parameters:
+  vm.swappiness=1
+  net.ipv4.ip_forward=1
+  net.bridge.bridge-nf-call-iptables=1

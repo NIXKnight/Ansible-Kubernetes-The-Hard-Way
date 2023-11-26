@@ -1,0 +1,27 @@
+---
+# tasks file for pve_ci_tweak
+- name: Update Grub Configuration
+  ansible.builtin.lineinfile:
+    path: "{{ pve_ci_grub_config_path }}"
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: "{{ pve_ci_grub_cmdline }}"
+    backrefs: yes
+  when: pve_ci_update_grub_cmdline
+
+- name: Add Kernel Modules
+  ansible.builtin.lineinfile:
+    path: "{{ pve_ci_kernel_modules_override_path }}"
+    line: "{{ pve_ci_kernel_modules }}"
+    create: yes
+
+- name: Update sysctl Parameters
+  ansible.builtin.lineinfile:
+    path: "{{ pve_ci_sysctl_override_path }}"
+    line: "{{ pve_ci_sysctl_parameters }}"
+    create: yes
+
+- name: Update Grub
+  ansible.builtin.shell:
+    cmd: "update-grub"
+  args:
+    executable: /bin/bash

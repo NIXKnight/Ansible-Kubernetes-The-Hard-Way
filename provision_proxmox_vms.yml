@@ -1,17 +1,7 @@
 ---
 - name: Create and Start Proxmox VMs
-  hosts: all
+  hosts: proxmox
   gather_facts: yes
   become: True
   roles:
     - provision_proxmox_vms
-  tags: create-and-start-vms
-
-- name: Run Common Roles
-  hosts: k8s_nodes
-  gather_facts: yes
-  become: True
-  roles:
-    - linux_common
-    - motd
-  tags: common-roles
