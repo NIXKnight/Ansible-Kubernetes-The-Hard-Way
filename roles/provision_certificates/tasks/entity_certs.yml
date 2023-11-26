@@ -1,0 +1,43 @@
+---
+- name: Extract entity from Certificate Subject
+  ansible.builtin.set_fact:
+    entity: "{{ cert_config.subject.CN.split(':')[1] if ':' in cert_config.subject.CN else cert_config.subject.CN }}"
+  when: (CA is not defined) or (CA is defined and not CA)
+
+- name: Set Certificate and Key Paths for Keys
+  ansible.builtin.set_fact:
+    private_key: "{{ cert_provisioner_path }}/{{ entity }}.key"
+    csr: "{{ cert_provisioner_path }}/{{ entity }}.csr"
+    certificate: "{{ cert_provisioner_path }}/{{ entity }}.crt"
+
+- name: Generate an OpenSSL Private Key {{ private_key }}
+  community.crypto.openssl_privatekey:
+    path: "{{ private_key }}"
+    size: 2048
+
+- name: Generate an OpenSSL Certificate Signing Request {{ csr }}
+  community.crypto.openssl_csr:
+    privatekey_path: "{{ private_key }}"
+    path: "{{ csr }}"
+    subject:
+      CN: "{{ cert_config.subject.CN }}"
+      O: "{{ cert_config.subject.O }}"
+
+- name: Generate an OpenSSL CA Certificate Signed with the CA Private Key
+  community.crypto.x509_certificate:
+    csr_path: "{{ ca_csr }}"
+    privatekey_path: "{{ ca_private_key }}"
+    path: "{{ ca_certificate }}"
+    provider: selfsigned
+    selfsigned_not_after: +1000D
+  when: CA is defined and CA
+
+- name: Generate an OpenSSL certificate {{ certificate }} Signed with {{ ca_certificate }}
+  community.crypto.x509_certificate:
+    path: "{{ certificate }}"
+    csr_path: "{{ csr }}"
+    ownca_path: "{{ ca_certificate }}"
+    ownca_privatekey_path: "{{ ca_private_key }}"
+    provider: ownca
+    selfsigned_not_after: +1000D
+  when: (CA is not defined) or (CA is defined and not CA)

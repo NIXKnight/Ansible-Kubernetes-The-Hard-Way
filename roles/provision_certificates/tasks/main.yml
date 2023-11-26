@@ -1,0 +1,48 @@
+---
+# tasks file for provision_certificates
+- name: Ensure Output Directory Exists
+  ansible.builtin.file:
+    path: "{{ cert_provisioner_path }}"
+    # recurse: true
+    state: directory
+
+- name: Set Certificate Authority Entity Name
+  ansible.builtin.set_fact:
+    ca_entity: "{{ cert_provisioner_ca_config.subject.CN.split(':')[1] if ':' in cert_provisioner_ca_config.subject.CN else cert_provisioner_ca_config.subject.CN }}"
+
+- name: Set Certificate Authority Paths
+  ansible.builtin.set_fact:
+    ca_csr: "{{ cert_provisioner_path }}/{{ ca_entity }}.csr"
+    ca_private_key: "{{ cert_provisioner_path }}/{{ ca_entity }}.key"
+    ca_certificate: "{{ cert_provisioner_path }}/{{ ca_entity }}.crt"
+
+- name: Provision Certificate Authority
+  include_tasks: entity_certs.yml
+  vars:
+    cert_config: "{{ cert_provisioner_ca_config }}"
+    CA: true
+    entity: "{{ ca_entity }}"
+
+- name: Provision Admin Certificates
+  include_tasks: entity_certs.yml
+  vars:
+    cert_config: "{{ cert_provisioner_admin_config }}"
+    CA: false
+
+- name: Provision Kube Controller Manager Certificates
+  include_tasks: entity_certs.yml
+  vars:
+    csr_subject: "{{ cert_provisioner_kube_controller_manager_config }}"
+    CA: false
+
+- name: Provision Kube Proxy Certificates
+  include_tasks: entity_certs.yml
+  vars:
+    csr_subject: "{{ cert_provisioner_kube_proxy_config }}"
+    CA: false
+
+- name: Provision Kube Scheduler Certificates
+  include_tasks: entity_certs.yml
+  vars:
+    csr_subject: "{{ cert_provisioner_kube_scheduler_config }}"
+    CA: false
