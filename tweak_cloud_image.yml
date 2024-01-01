@@ -1,0 +1,10 @@
+---
+- name: Prepare PVE Cloud Image
+  connection: community.general.chroot
+  hosts: chroot
+  gather_facts: yes
+  become: True
+  roles:
+    - linux_common
+    - motd
+    - pve_ci_tweak

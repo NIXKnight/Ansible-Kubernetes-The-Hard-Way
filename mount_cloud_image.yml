@@ -1,0 +1,100 @@
+---
+- name: Mount/Unmount Cloud Image
+  connection: local
+  hosts: localhost
+  gather_facts: yes
+  become: True
+  vars:
+    cloud_image: "{{ lookup('ansible.builtin.env', 'HOME') }}/Downloads/debian-12-generic-amd64-daily-20231117-1567.qcow2"
+    mount_point: "/mnt"
+    mount_device: "/dev/nbd0"
+  tasks:
+    - name: Load NBD Module
+      community.general.modprobe:
+        name: "nbd"
+        params: "max_part=2"
+        state: present
+      tags:
+        - mount
+
+    - name: Connect Cloud Image Using NBD
+      ansible.builtin.shell:
+        cmd: "qemu-nbd --connect={{ mount_device }} {{ cloud_image }}"
+      args:
+        executable: /bin/bash
+      tags:
+        - mount
+
+    - name: Mount the NBD Exported Cloud Image
+      ansible.posix.mount:
+        src: "{{ mount_device }}p1"
+        path: "{{ mount_point }}"
+        fstype: auto
+        state: ephemeral
+      tags:
+        - mount
+
+    - name: Mount /sys and /dev into {{ mount_point }}
+      ansible.posix.mount:
+        src: "{{ item }}"
+        path: "{{ mount_point }}{{ item }}"
+        fstype: none
+        opts: bind
+        state: ephemeral
+      with_items:
+        - "/sys"
+        - "/dev"
+      tags:
+        - mount
+
+    - name: Remove Existing File {{ mount_point }}/etc/resolv.conf
+      ansible.builtin.file:
+        path: "{{ mount_point }}/etc/resolv.conf"
+        state: absent
+      tags:
+        - mount
+        - unmount
+
+    - name: Copy /etc/resolv.conf to {{ mount_point }}/etc/resolv.conf
+      ansible.builtin.copy:
+        src: "/etc/resolv.conf"
+        dest: "{{ mount_point }}/etc/resolv.conf"
+      tags:
+        - mount
+
+    - name: Restore Symlink {{ mount_point }}/etc/resolv.conf
+      ansible.builtin.file:
+        path: "/etc/resolv.conf"
+        state: absent
+      delegate_to: chroot
+      vars:
+        ansible_connection: community.general.chroot
+      tags:
+        - mount
+        - unmount
+
+    - name: Umount /sys, /dev and {{ mount_point }}
+      ansible.posix.mount:
+        path: "{{ item }}"
+        state: unmounted
+      with_items:
+        - "{{ mount_point }}/sys"
+        - "{{ mount_point }}/dev"
+        - "{{ mount_point }}"
+      tags:
+        - unmount
+
+    - name: Disconnect Cloud Image Using NBD
+      ansible.builtin.shell:
+        cmd: "qemu-nbd --disconnect {{ mount_device }}"
+      args:
+        executable: /bin/bash
+      tags:
+        - unmount
+
+    - name: Unload NBD Module
+      community.general.modprobe:
+        name: "nbd"
+        state: absent
+      tags:
+        - unmount

@@ -62,7 +62,7 @@
 
 - name: Resize Imported Disk(s)
   ansible.builtin.shell:
-    cmd: "qm resize {{ item }} virtio0 +10G"
+    cmd: "qm resize {{ item }} virtio0 +{{ disk_resize }}"
   args:
     executable: /bin/bash
   with_items: "{{ vms_without_attached_disk }}"

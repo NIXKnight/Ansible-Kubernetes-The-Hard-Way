@@ -1,6 +1,8 @@
 ---
+# pve_ci_tweak
+pve_ci_image: "{{ lookup('ansible.builtin.env', 'HOME') }}/Downloads/debian-12-generic-amd64-daily-20231117-1567.qcow2"
 # provision_proxmox_vms
-vm_provisioner_src_image: "{{ lookup('ansible.builtin.env', 'HOME') }}/Downloads/debian-12-generic-amd64-daily-20231117-1567.qcow2"
+vm_provisioner_src_image: "{{ pve_ci_image }}"
 vm_provisioner_dest_image: "/var/lib/vz/images/debian-12-generic-amd64-daily-20231117-1567.qcow2"
 vm_provisioner_cloudinit_username: "{{ lookup('ansible.builtin.env', 'USER') }}"
 vm_provisioner_local_user_ssh_public_key: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/id_rsa.pub"
@@ -10,8 +12,8 @@ vm_provisioner_proxmox_node: "KDRAIGO"
 vm_provisioner_cloudinit_search_domain: "h.nixknight.pk"
 vm_provisioner_default_proxmox_storage: "SSD-DATA"
 vm_provisioner_k8s_vms:
-  - name: "k8s-master-01"
-    tags: "k8s_nodes,master"
+  - name: "k8s-api-lb"
+    tags: "k8s_nodes,api-lb"
     vmid: 101
     sockets: 2
     cores: 1
@@ -30,8 +32,8 @@ vm_provisioner_k8s_vms:
     ipconfig:
       ipconfig0: "ip=192.168.1.21/24,gw=192.168.1.1"
     state: present
-  - name: "k8s-master-02"
-    tags: "k8s_nodes,master"
+  - name: "k8s-master-01"
+    tags: "k8s_nodes,masters"
     vmid: 102
     sockets: 2
     cores: 1
@@ -50,8 +52,8 @@ vm_provisioner_k8s_vms:
     ipconfig:
       ipconfig0: "ip=192.168.1.22/24,gw=192.168.1.1"
     state: present
-  - name: "k8s-lb"
-    tags: "k8s_nodes,lb"
+  - name: "k8s-master-02"
+    tags: "k8s_nodes,masters"
     vmid: 103
     sockets: 2
     cores: 1
@@ -70,8 +72,8 @@ vm_provisioner_k8s_vms:
     ipconfig:
       ipconfig0: "ip=192.168.1.23/24,gw=192.168.1.1"
     state: present
-  - name: "k8s-worker-01"
-    tags: "k8s_nodes,workers"
+  - name: "k8s-master-03"
+    tags: "k8s_nodes,masters"
     vmid: 104
     sockets: 2
     cores: 1
@@ -90,7 +92,7 @@ vm_provisioner_k8s_vms:
     ipconfig:
       ipconfig0: "ip=192.168.1.24/24,gw=192.168.1.1"
     state: present
-  - name: "k8s-worker-02"
+  - name: "k8s-worker-01"
     tags: "k8s_nodes,workers"
     vmid: 105
     sockets: 2
@@ -109,4 +111,44 @@ vm_provisioner_k8s_vms:
       net0: "virtio,bridge=vmbr0"
     ipconfig:
       ipconfig0: "ip=192.168.1.25/24,gw=192.168.1.1"
+    state: present
+  - name: "k8s-worker-02"
+    tags: "k8s_nodes,workers"
+    vmid: 106
+    sockets: 2
+    cores: 1
+    memory: 2048
+    ostype: "l26"
+    disk_resize: "18G"
+    ciuser: "{{ vm_provisioner_cloudinit_username }}"
+    ide:
+      ide2: 'local:cloudinit,format=qcow2'
+    sshkeys: "{{ vm_provisioner_cloudinit_ssh_public_key }}"
+    searchdomains: "{{ vm_provisioner_cloudinit_search_domain }}"
+    nameservers:
+      - '192.168.1.1'
+    net:
+      net0: "virtio,bridge=vmbr0"
+    ipconfig:
+      ipconfig0: "ip=192.168.1.26/24,gw=192.168.1.1"
+    state: present
+  - name: "k8s-worker-03"
+    tags: "k8s_nodes,workers"
+    vmid: 106
+    sockets: 2
+    cores: 1
+    memory: 2048
+    ostype: "l26"
+    disk_resize: "18G"
+    ciuser: "{{ vm_provisioner_cloudinit_username }}"
+    ide:
+      ide2: 'local:cloudinit,format=qcow2'
+    sshkeys: "{{ vm_provisioner_cloudinit_ssh_public_key }}"
+    searchdomains: "{{ vm_provisioner_cloudinit_search_domain }}"
+    nameservers:
+      - '192.168.1.1'
+    net:
+      net0: "virtio,bridge=vmbr0"
+    ipconfig:
+      ipconfig0: "ip=192.168.1.27/24,gw=192.168.1.1"
     state: present
